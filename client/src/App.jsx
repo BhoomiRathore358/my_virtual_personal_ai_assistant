@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-const API_URL = "http://127.0.0.1:5000";
+const API_URL = 'https://my-virtual-personal-ai-assistant-8.onrender.com';
+
 
 function App() {
   const [email, setEmail] = useState("test@example.com");
@@ -643,7 +644,6 @@ function App() {
                 }
               }}
             />
-
             <button
               type="button"
               className="send-button"
