@@ -8,7 +8,6 @@ import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 
-
 const app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -19,15 +18,13 @@ const PORT = process.env.PORT || 5000;
 
 app.disable("x-powered-by");
 
-app.use(
-  helmet()
-);
+app.use(helmet());
 
-// Frontend ko baad mein exact URL se restrict karenge.
-// Development ke liye localhost ports allow hain.
+// ✅ FIX: Hamne aapki live Vercel website aur local links dono ko allow kar diya hai
 app.use(
   cors({
     origin: [
+      "https://vercel.app", // Aapka naya frontend live URL
       "http://localhost:5173",
       "http://127.0.0.1:5173",
     ],
@@ -72,21 +69,11 @@ app.get("/", (req, res) => {
 // AUTH ROUTES
 // =========================
 
-app.use(
-  "/api/users/signup",
-  authLimiter,
-  userRoutes
-);
-
-app.use(
-  "/api/users/login",
-  authLimiter,
-  userRoutes
-);
+app.use("/api/users/signup", authLimiter, userRoutes);
+app.use("/api/users/login", authLimiter, userRoutes);
 
 app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
-
 
 // =========================
 // 404
@@ -118,10 +105,9 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(PORT, "127.0.0.1", () => {
-      console.log(
-        `Server running on http://127.0.0.1:${PORT}`
-      );
+    // ✅ FIX: '127.0.0.1' hata kar '0.0.0.0' set kar diya hai taaki Render live ho sake
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running perfectly on port ${PORT}`);
     });
   } catch (error) {
     console.error("Server startup failed:", error);
@@ -130,3 +116,4 @@ const startServer = async () => {
 };
 
 startServer();
+
