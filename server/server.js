@@ -20,18 +20,22 @@ app.disable("x-powered-by");
 
 app.use(helmet());
 
-// ✅ FIX: Hamne aapki live Vercel website aur local links dono ko allow kar diya hai
+// ✅ FIX: Hamne aapka exact aur asli live Vercel link yahan set kar diya hai
 app.use(
   cors({
     origin: [
-      "https://vercel.app", // Aapka naya frontend live URL
+      "https://my-virtual-personal-ai-assistant.vercel.app", // Aapka asli frontend live URL
       "http://localhost:5173",
       "http://127.0.0.1:5173",
     ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
   })
 );
+
+// Pre-flight fallback check handles options safe bypass
+app.options("*", cors());
 
 // Request body limit
 app.use(
@@ -116,4 +120,5 @@ const startServer = async () => {
 };
 
 startServer();
+
 
