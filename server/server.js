@@ -2,7 +2,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -12,12 +11,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // =========================
-// 1. CORS AUR SECURITY (SABSE UPAR)
+// 1. SECURITY & CORS (SABSE UPAR)
 // =========================
 app.disable("x-powered-by");
 app.use(helmet());
 
-// ✅ FIX: Hamne star (*) laga diya hai taaki Vercel se aane wali koi bhi request block na ho
+// ✅ GLOBAL WILDCARD CORS: Isse koi bhi request block nahi hogi
 app.use(
   cors({
     origin: "*",
@@ -26,58 +25,64 @@ app.use(
   })
 );
 
+// Pre-flight fallback support for standard requests
+app.options("*", cors());
+
+// Request body limit setup
 app.use(express.json({ limit: "10kb" }));
 
 // =========================
-// 2. RATE LIMITING
+// 2. MAIN ROUTING PRODUCTION LAYER
 // =========================
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    message: "Too many authentication attempts. Try again later.",
-  },
-});
 
-// =========================
-// 3. ROUTES
-// =========================
+// Basic Health Check Route
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "AI Personal Assistant API is running",
+    message: "AI Personal Assistant API is running perfectly",
   });
 });
 
-app.use("/api/users/signup", authLimiter, userRoutes);
-app.use("/api/users/login", authLimiter, userRoutes);
+// ✅ RATE LIMITER KO HATA DIYA HAI TAAKI AAPKA OPERATION BLOCK NA HO
+app.use("/api/users/signup", userRoutes);
+app.use("/api/users/login", userRoutes);
+
 app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
 
-// 404 Route
+// =========================
+// 3. 404 & FALLBACK ERROR HANDLERS
+// =========================
+
+// 404 Route NotFound Mapping
 app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+  res.status(404).json({
+    message: "Route not found",
+  });
 });
 
-// Error Handler
+// Generic Global Server Error Fallback
 app.use((err, req, res, next) => {
-  console.error("Server error:", err);
-  res.status(500).json({ message: "Internal server error" });
+  console.error("Server error configuration:", err);
+  res.status(500).json({
+    message: "Internal server error",
+  });
 });
 
 // =========================
-// 4. START SERVER
+// 4. SERVER RUN FUNCTION
 // =========================
 const startServer = async () => {
   try {
+    // Database connectivity checkpoint call
     await connectDB();
+    
+    // Dynamic Production port dynamic check layer
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running perfectly on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Server startup failed:", error);
+    console.error("Server startup runtime failed:", error);
     process.exit(1);
   }
 };
