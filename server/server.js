@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5000;
 app.disable("x-powered-by");
 app.use(helmet());
 
-// ✅ GLOBAL WILDCARD CORS: Isse koi bhi request block nahi hogi
+// ✅ CORRECTED: Sabhi origins open hain aur preflight auto-handle ho jayega
 app.use(
   cors({
     origin: "*",
@@ -24,9 +24,6 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// Pre-flight fallback support for standard requests
-app.options("*", cors());
 
 // Request body limit setup
 app.use(express.json({ limit: "10kb" }));
@@ -43,7 +40,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// ✅ RATE LIMITER KO HATA DIYA HAI TAAKI AAPKA OPERATION BLOCK NA HO
+// Routes connection layering
 app.use("/api/users/signup", userRoutes);
 app.use("/api/users/login", userRoutes);
 
@@ -77,12 +74,12 @@ const startServer = async () => {
     // Database connectivity checkpoint call
     await connectDB();
     
-    // Dynamic Production port dynamic check layer
+    // Dynamic Production port check layer
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running perfectly on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Server startup runtime failed:", error);
+    console.error("Server startup failed:", error);
     process.exit(1);
   }
 };
