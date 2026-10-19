@@ -1,86 +1,50 @@
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import Conversation from "../models/Conversation.js";
-//  YEH SAHI HAI (Official SDK Syntax)
-//  YEH SAHI HAI (Official SDK Syntax)
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-
-
 
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-
-// POST /api/chat - Message bhejna
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { message, conversationId } = req.body;
-    if (!message || !message.trim()) return res.status(400).json({ message: "Message is required" });
+    const { message, conversationId, fileData, fileType } = req.body;
+    const userId = req.user.userId; // Matches Token Key Mappings
+    
+    let conversation = conversationId ? await Conversation.findOne({ _id: conversationId, userId }) : null;
+    if (!conversation) conversation = await Conversation.create({ userId, messages: [] });
 
-    const cleanMessage = message.trim();
-    const userId = req.user.userId;
-    let conversation;
+    let userText = message?.trim() || "Sent an attachment";
+    conversation.messages.push({ role: "user", content: userText });
 
-    if (conversationId) {
-      conversation = await Conversation.findOne({ _id: conversationId, userId });
+    let aiReply = "";
+    if (fileData && fileType) {
+      const base64 = fileData.replace(/^data:.*?;base64,/, "");
+      const mediaPart = { inlineData: { data: base64, mimeType: fileType } };
+      const result = await model.generateContent([userText, mediaPart]);
+      aiReply = await result.response.text();
+    } else {
+      const history = conversation.messages.slice(0, -1).map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }]
+      }));
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(userText);
+      aiReply = await result.response.text();
     }
-    if (!conversation) {
-      conversation = await Conversation.create({ userId, messages: [] });
-    }
 
-    conversation.messages.push({ role: "user", content: cleanMessage });
-
-    if (!aiAPIKey) return res.status(500).json({ message: "AI API Key missing on server" });
-
-    const ai = new GoogleGenAI({ apiKey: aiAPIKey });
-    const history = conversation.messages.slice(0, -1).map(item => ({
-      role: item.role === "assistant" ? "model" : "user",
-      parts: [{ text: item.content }]
-    }));
-
-    const chat = ai.chats.create({
-      model: "gemini-1.5-flash",
-      history: history,
-      config: { systemInstruction: "You are a helpful personal AI assistant." }
-    });
-
-    const result = await chat.sendMessage({ message: cleanMessage });
-    const assistantMessage = result.text;
-
-    conversation.messages.push({ role: "assistant", content: assistantMessage.trim() });
+    conversation.messages.push({ role: "assistant", content: aiReply.trim() });
     await conversation.save();
 
-    return res.status(200).json({
-      message: "AI response generated",
-      conversationId: conversation._id,
-      reply: assistantMessage.trim(),
-    });
+    res.json({ success: true, conversationId: conversation._id, reply: aiReply.trim() });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "AI request failed" });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET /api/chat/history - Chat history load karna
 router.get("/history", authMiddleware, async (req, res) => {
-  try {
-    const conversations = await Conversation.find({ userId: req.user.userId }).sort({ updatedAt: -1 });
-    return res.status(200).json({ conversations });
-  } catch (error) {
-    return res.status(500).json({ message: "Failed to load history" });
-  }
+  const conversations = await Conversation.find({ userId: req.user.userId }).sort({ updatedAt: -1 });
+  res.json({ success: true, conversations });
 });
-
-// GET /api/chat/:id - Ek chat kholna
-router.get("/:id", authMiddleware, async (req, res) => {
-  try {
-    const conversation = await Conversation.findOne({ _id: req.params.id, userId: req.user.userId });
-    return res.status(200).json({ conversation });
-  } catch (error) {
-    return res.status(500).json({ message: "Failed to load conversation" });
-  }
-});
-
 export default router;
