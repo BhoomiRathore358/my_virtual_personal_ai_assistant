@@ -51,7 +51,7 @@ export default function App() {
 
   const send = async (e) => {
     if (e) e.preventDefault(); if (!msg.trim() && !file) return;
-    const userMsg = { role: "user", content: msg.trim() || "Attachment", file, fileType: mime };
+    const userMsg = { role: "user", content: msg.trim() || "Sent an attachment", file, fileType: mime };
     setMessages(p => [...p, userMsg]); setMsg(""); setFile(null); setFName(""); setLoad(true);
 
     try {
@@ -60,16 +60,21 @@ export default function App() {
     } catch (err) { console.error(err); } finally { setLoad(false); }
   };
 
+  const logout = () => {
+    localStorage.removeItem("token"); setAuth(false);
+    setMessages([]); setConvs([]); setCid(null);
+  };
+
   if (!auth) return (
     <div className="app" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
-      <div className="background-orb orb-one"></div>
+      <div className="background-orb orb-one"></div><div className="background-orb orb-two"></div>
       <div style={{ background: "rgba(12, 14, 27, 0.75)", padding: "40px", borderRadius: "24px", width: "350px", textAlign: "center", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }}>
         <h2>{signup ? "Create Account" : "AI Portal Login"}</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "20px" }}>
           {signup && <input type="text" placeholder="Name" value={name} onChange={e => setName(e.target.value)} style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.05)", border: "none", color: "#fff" }} />}
           <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.05)", border: "none", color: "#fff" }} />
           <input type="password" placeholder="Password" value={pass} onChange={e => setPass(e.target.value)} style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.05)", border: "none", color: "#fff" }} />
-          <button onClick={handleAuth} style={{ padding: "12px", background: "#8b5cf6", border: "none", color: "#fff", borderRadius: "10px", fontWeight: "700" }}>{signup ? "Sign Up" : "Log In"}</button>
+          <button onClick={handleAuth} style={{ padding: "12px", background: "#8b5cf6", border: "none", color: "#fff", borderRadius: "10px", fontWeight: "700", cursor: "pointer" }}>{signup ? "Sign Up" : "Log In"}</button>
         </div>
         <p onClick={() => setSignup(!signup)} style={{ color: "#a5b4fc", marginTop: "20px", cursor: "pointer", fontSize: "13px" }}>{signup ? "Login here" : "Create profile"}</p>
       </div>
@@ -114,3 +119,4 @@ export default function App() {
     </div>
   );
 }
+export {App};

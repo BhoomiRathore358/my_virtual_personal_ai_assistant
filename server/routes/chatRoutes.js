@@ -11,7 +11,7 @@ r.post("/", authMiddleware, async (req, res) => {
     let c = cid ? await Conversation.findOne({ _id: cid, userId: uid }) : null;
     if (!c) c = await Conversation.create({ userId: uid, messages: [] });
 
-    let txt = msg?.trim() || "Attachment", reply = "";
+    let txt = msg?.trim() || "Sent an attachment", reply = "";
     c.messages.push({ role: "user", content: txt });
 
     if (fData && fType) {
