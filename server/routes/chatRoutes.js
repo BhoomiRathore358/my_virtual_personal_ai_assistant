@@ -1,6 +1,3 @@
-// ==========================================
-// 📄 PATH: server/routes/chatRoutes.js
-// ==========================================
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import Conversation from "../models/Conversation.js";
@@ -19,15 +16,18 @@ r.post("/", authMiddleware, async (req, res) => {
 
     if (fData && fType) {
       const media = { inlineData: { data: fData.replace(/^data:.*?;base64,/, ""), mimeType: fType } };
-      reply = (await ai.generateContent([txt, media])).response.text();
+      const result = await ai.generateContent([txt, media]);
+      reply = await result.response.text();
     } else {
       const hist = c.messages.slice(0, -1).map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
-      reply = (await ai.startChat({ history: hist }).sendMessage(txt)).response.text();
+      const chat = ai.startChat({ history: hist }); // 🔑 FIXED: Target hist correctly
+      const result = await chat.sendMessage(txt);
+      reply = await result.response.text();
     }
 
-    c.messages.push({ role: "assistant", content: await reply });
+    c.messages.push({ role: "assistant", content: reply.trim() });
     await c.save();
-    res.json({ success: true, conversationId: c._id, reply: await reply });
+    res.json({ success: true, conversationId: c._id, reply: reply.trim() });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
