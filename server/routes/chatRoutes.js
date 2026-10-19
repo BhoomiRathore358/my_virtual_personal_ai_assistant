@@ -4,12 +4,14 @@ import Conversation from "../models/Conversation.js";
 //  YEH SAHI HAI (Official SDK Syntax)
 //  YEH SAHI HAI (Official SDK Syntax)
 import { GoogleGenerativeAI } from "@google/generative-ai";
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
 
 
 
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
 
 // POST /api/chat - Message bhejna
 router.post("/", authMiddleware, async (req, res) => {
