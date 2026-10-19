@@ -61,8 +61,7 @@ export default function App() {
   };
 
   const logout = () => {
-    localStorage.removeItem("token"); setAuth(false);
-    setMessages([]); setConvs([]); setCid(null);
+    localStorage.removeItem("token"); setAuth(false); setMessages([]); setConvs([]); setCid(null);
   };
 
   if (!auth) return (
@@ -117,6 +116,5 @@ export default function App() {
         </div>
       </div>
     </div>
-  );
+);
 }
-export {App};

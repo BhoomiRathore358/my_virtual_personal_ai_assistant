@@ -17,8 +17,10 @@ r.post("/", authMiddleware, async (req, res) => {
     if (fData && fType) {
       reply = (await ai.generateContent([txt, { inlineData: { data: fData.replace(/^data:.*?;base64,/, ""), mimeType: fType } }])).response.text();
     } else {
-      const hist = c.messages.slice(0, -1).map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content || "" }] }));
-      reply = (await ai.startChat({ history: hist }).sendMessage(txt)).response.text();
+      // 🔑 LIGHTNING FAST: Directly compiles standard dialogue map array contexts safely
+      const hist = c.messages.slice(0, -1).map(m => `${m.role === "user" ? "User" : "AI"}: ${m.content}`).join("\n");
+      const prompt = `${hist}\nUser: ${txt}\nAI:`;
+      reply = (await ai.generateContent(prompt)).response.text();
     }
 
     c.messages.push({ role: "assistant", content: reply.trim() });
@@ -30,5 +32,3 @@ r.post("/", authMiddleware, async (req, res) => {
 r.get("/history", authMiddleware, async (req, res) => res.json({ success: true, conversations: await Conversation.find({ userId: req.user.userId }).sort({ updatedAt: -1 }) }));
 r.get("/:id", authMiddleware, async (req, res) => res.json({ success: true, conversation: await Conversation.findOne({ _id: req.params.id, userId: req.user.userId }) }));
 export default r;
-
-
