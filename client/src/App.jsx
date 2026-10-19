@@ -10,9 +10,9 @@ export default function App() {
   const fInput = useRef(null), recRef = useRef(null), scrollRef = useRef(null);
 
   useEffect(() => {
-    // 🔑 FIXED: Standard programmatic head injection for premium icons vector layout loading
-    if (!document.getElementById("fa-cdn")) {
-      const l = document.createElement("link"); l.id = "fa-cdn"; l.rel = "stylesheet"; l.href = "https://cloudflare.com";
+    const id = "fa-cdn-link";
+    if (!document.getElementById(id)) {
+      const l = document.createElement("link"); l.id = id; l.rel = "stylesheet"; l.href = "https://cloudflare.com";
       document.head.appendChild(l);
     }
   }, []);
@@ -28,7 +28,7 @@ export default function App() {
   const handleAuth = async () => {
     const res = await fetch(`${API}/api/users/${signup ? "signup" : "login"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(signup ? { name, email, password: pass } : { email, password: pass }) });
     const d = await res.json(); if (!res.ok) return alert(d.message);
-    if (signup) { setSignup(false); alert("Signup done!"); } else { localStorage.setItem("token", d.token); setAuth(true); }
+    if (signup) { setSignup(false); alert("Signup done!"); } else { localStorage.setItem("token", d.token); setLoggedIn(true); }
   };
 
   const openChat = async (id) => {
@@ -37,7 +37,7 @@ export default function App() {
   };
 
   const handleFile = (e) => {
-    const f = e.target.files[0]; if (!f) return;
+    const f = e.target.files; if (!f) return;
     setMime(f.type); setFName(f.name);
     const r = new FileReader(); r.onloadend = () => setFile(r.result); r.readAsDataURL(f);
   };
@@ -46,7 +46,7 @@ export default function App() {
     const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Speech) return alert("Mic unsupported.");
     if (rec) return recRef.current.stop();
     const r = new Speech(); r.lang = 'en-IN'; r.onstart = () => setRec(true); r.onend = () => setRec(false);
-    r.onresult = (e) => setMsg(e.results[0][0].transcript); recRef.current = r; r.start();
+    r.onresult = (e) => setMsg(e.results.transcript); recRef.current = r; r.start();
   };
 
   const send = async (e) => {
@@ -81,10 +81,9 @@ export default function App() {
       <div className="sidebar" style={{ backdropFilter: "blur(10px)" }}>
         <h2>Neural Matrix</h2><button className="new-chat-button" onClick={() => { setCid(null); setMessages([]); }}>+ New Chat</button>
         <div className="conversation-list" style={{ marginTop: "20px" }}>
-          {/* 🔑 FIXED: Corrected subdocument list mapping extractor pattern */}
-          {convs.map(c => <button key={c._id} className={`conversation-item ${cid === c._id ? "active" : ""}`} onClick={() => openChat(c._id)}><i className="far fa-comment-alt" style={{ marginRight: "8px", color: "#06b6d4" }}></i>{c.messages && c.messages.length > 0 ? c.messages[0]?.content?.substring(0, 14) : "Chat Log"}</button>)}
+          {convs.map(c => <button key={c._id} className={`conversation-item ${cid === c._id ? "active" : ""}`} onClick={() => openChat(c._id)}><i className="far fa-comment-alt" style={{ marginRight: "8px", color: "#06b6d4" }}></i>{c.messages && c.messages.length > 0 ? (c.messages[0]?.content?.substring(0, 14) || "Media Chat") : "Chat Log"}</button>)}
         </div>
-        <button onClick={() => { localStorage.removeItem("token"); setAuth(false); }} style={{ marginTop: "auto", background: "none", color: "#ff4664", border: "none", display: "flex", alignItems: "center", gap: "8px" }}><i className="fas fa-sign-out-alt"></i> Logout</button>
+        <button onClick={() => { localStorage.removeItem("token"); setAuth(false); }} style={{ marginTop: "auto", background: "none", color: "#ff4664", border: "none", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}><i className="fas fa-sign-out-alt"></i> Logout</button>
       </div>
       <div className="main-area">
         <div className="chat-container" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -103,11 +102,11 @@ export default function App() {
             <div ref={scrollRef} />
           </div>
           <form onSubmit={send} style={{ display: "flex", alignItems: "center", background: "rgba(20, 24, 43, 0.6)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "20px", padding: "8px 18px", gap: "14px", marginBottom: "20px", backdropFilter: "blur(20px)" }}>
-            <button type="button" onClick={() => fInput.current.click()} style={{ background: "none", border: "none", color: "#81879e", fontSize: "18px" }}><i className="fas fa-paperclip"></i></button>
+            <button type="button" onClick={() => fInput.current.click()} style={{ background: "none", border: "none", color: "#81879e", fontSize: "18px", cursor: "pointer" }}><i className="fas fa-paperclip"></i></button>
             <input type="file" onChange={handleFile} accept="image/*,video/*" ref={fInput} style={{ display: "none" }} />
             <input type="text" value={msg} onChange={e => setMsg(e.target.value)} placeholder="Ask anything..." style={{ flex: 1, background: "none", border: "none", color: "#fff", outline: "none", fontSize: "15px" }} />
-            <button type="button" onClick={handleMic} style={{ background: rec ? "rgba(255,70,100,0.2)" : "none", border: "none", color: rec ? "#ff4664" : "#81879e", borderRadius: "50%", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}><i className={`fas fa-microphone ${rec ? "animate-pulse" : ""}`}></i></button>
-            <button type="submit" style={{ background: (msg.trim() || file) ? "linear-gradient(135deg, #06b6d4, #3b82f6)" : "rgba(255,255,255,0.03)", color: (msg.trim() || file) ? "#fff" : "#444", border: "none", borderRadius: "12px", padding: "8px 16px", fontWeight: "700" }}><i className="fas fa-paper-plane"></i></button>
+            <button type="button" onClick={handleMic} style={{ background: rec ? "rgba(255, 70, 100, 0.2)" : "none", border: "none", color: rec ? "#ff4664" : "#81879e", borderRadius: "50%", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><i className={`fas fa-microphone ${rec ? "animate-pulse" : ""}`}></i></button>
+            <button type="submit" style={{ background: (msg.trim() || file) ? "linear-gradient(135deg, #06b6d4, #3b82f6)" : "rgba(255,255,255,0.03)", color: (msg.trim() || file) ? "#fff" : "#444", border: "none", borderRadius: "12px", padding: "8px 16px", fontWeight: "700", cursor: "pointer" }}><i className="fas fa-paper-plane"></i></button>
           </form>
           {fName && <div style={{ color: "#06b6d4", fontSize: "12px", marginBottom: "15px", paddingLeft: "10px" }}>✓ Staged: {fName} <span style={{ cursor: "pointer", color: "#ff4664", marginLeft: "5px" }} onClick={() => { setFile(null); setFName(""); }}>✕</span></div>}
         </div>

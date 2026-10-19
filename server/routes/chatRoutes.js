@@ -11,18 +11,14 @@ r.post("/", authMiddleware, async (req, res) => {
     let c = cid ? await Conversation.findOne({ _id: cid, userId: uid }) : null;
     if (!c) c = await Conversation.create({ userId: uid, messages: [] });
 
-    let txt = msg?.trim() || "Sent a media attachment", reply = "";
+    let txt = msg?.trim() || "Sent an attachment", reply = "";
     c.messages.push({ role: "user", content: txt });
 
     if (fData && fType) {
-      const media = { inlineData: { data: fData.replace(/^data:.*?;base64,/, ""), mimeType: fType } };
-      const result = await ai.generateContent([txt, media]);
-      reply = await result.response.text();
+      reply = (await ai.generateContent([txt, { inlineData: { data: fData.replace(/^data:.*?;base64,/, ""), mimeType: fType } }])).response.text();
     } else {
-      const hist = c.messages.slice(0, -1).map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
-      const chat = ai.startChat({ history: hist }); // 🔑 FIXED: Target hist correctly
-      const result = await chat.sendMessage(txt);
-      reply = await result.response.text();
+      const hist = c.messages.slice(0, -1).map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content || "" }] }));
+      reply = (await ai.startChat({ history: hist }).sendMessage(txt)).response.text();
     }
 
     c.messages.push({ role: "assistant", content: reply.trim() });
@@ -34,3 +30,5 @@ r.post("/", authMiddleware, async (req, res) => {
 r.get("/history", authMiddleware, async (req, res) => res.json({ success: true, conversations: await Conversation.find({ userId: req.user.userId }).sort({ updatedAt: -1 }) }));
 r.get("/:id", authMiddleware, async (req, res) => res.json({ success: true, conversation: await Conversation.findOne({ _id: req.params.id, userId: req.user.userId }) }));
 export default r;
+
+
