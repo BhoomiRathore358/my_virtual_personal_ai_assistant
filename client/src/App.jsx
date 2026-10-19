@@ -28,7 +28,7 @@ export default function App() {
   const handleAuth = async () => {
     const res = await fetch(`${API}/api/users/${signup ? "signup" : "login"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(signup ? { name, email, password: pass } : { email, password: pass }) });
     const d = await res.json(); if (!res.ok) return alert(d.message);
-    if (signup) { setSignup(false); alert("Signup done!"); } else { localStorage.setItem("token", d.token); setLoggedIn(true); }
+    if (signup) { setSignup(false); alert("Signup done!"); } else { localStorage.setItem("token", d.token); setAuth(true); }
   };
 
   const openChat = async (id) => {
@@ -51,7 +51,7 @@ export default function App() {
 
   const send = async (e) => {
     if (e) e.preventDefault(); if (!msg.trim() && !file) return;
-    const userMsg = { role: "user", content: msg.trim() || "Sent an attachment", file, fileType: mime };
+    const userMsg = { role: "user", content: msg.trim() || "Attachment", file, fileType: mime };
     setMessages(p => [...p, userMsg]); setMsg(""); setFile(null); setFName(""); setLoad(true);
 
     try {
@@ -62,7 +62,7 @@ export default function App() {
 
   if (!auth) return (
     <div className="app" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
-      <div className="background-orb orb-one"></div><div className="background-orb orb-two"></div>
+      <div className="background-orb orb-one"></div>
       <div style={{ background: "rgba(12, 14, 27, 0.75)", padding: "40px", borderRadius: "24px", width: "350px", textAlign: "center", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }}>
         <h2>{signup ? "Create Account" : "AI Portal Login"}</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "20px" }}>
@@ -81,9 +81,9 @@ export default function App() {
       <div className="sidebar" style={{ backdropFilter: "blur(10px)" }}>
         <h2>Neural Matrix</h2><button className="new-chat-button" onClick={() => { setCid(null); setMessages([]); }}>+ New Chat</button>
         <div className="conversation-list" style={{ marginTop: "20px" }}>
-          {convs.map(c => <button key={c._id} className={`conversation-item ${cid === c._id ? "active" : ""}`} onClick={() => openChat(c._id)}><i className="far fa-comment-alt" style={{ marginRight: "8px", color: "#06b6d4" }}></i>{c.messages && c.messages.length > 0 ? (c.messages[0]?.content?.substring(0, 14) || "Media Chat") : "Chat Log"}</button>)}
+          {convs.map(c => <button key={c._id} className={`conversation-item ${cid === c._id ? "active" : ""}`} onClick={() => openChat(c._id)}><i className="far fa-comment-alt" style={{ marginRight: "8px", color: "#06b6d4" }}></i>{c.messages && c.messages.length > 0 ? (c.messages[c.messages.length - 1]?.content?.substring(0, 14) || "Media Chat") : "Chat Log"}</button>)}
         </div>
-        <button onClick={() => { localStorage.removeItem("token"); setAuth(false); }} style={{ marginTop: "auto", background: "none", color: "#ff4664", border: "none", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}><i className="fas fa-sign-out-alt"></i> Logout</button>
+        <button onClick={logout} style={{ marginTop: "auto", background: "none", color: "#ff4664", border: "none", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}><i className="fas fa-sign-out-alt"></i> Logout</button>
       </div>
       <div className="main-area">
         <div className="chat-container" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
