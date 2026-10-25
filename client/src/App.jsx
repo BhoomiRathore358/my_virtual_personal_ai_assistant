@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import "./App.css";
 
-const API ='https://my-virtual-personal-ai-assistant-8.onrender.com';
+const API =' https://my-virtual-personal-ai-assistant-6.onrender.com';
+
 
 
 
