@@ -6,7 +6,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const r = express.Router();
 
 // 🚀 FIXED MODEL: gemini-1.5-flash ki jagah hum up-to-date stable model name use kar rahe hain
-const modelName = "gemini-2.5-flash"; 
+const modelName = "gemini-3.8-flash"; 
+
 
 let ai = null;
 try {
