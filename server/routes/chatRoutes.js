@@ -6,7 +6,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const r = express.Router();
 
 // 🚀 2026 Mandated Standard Active Model Only
-const ACTIVE_MODEL = "gemini-3.8-flash"; 
+const ACTIVE_MODEL = "gemini-4-argon"; 
+
 
 r.post("/", authMiddleware, async (req, res) => {
   try {
