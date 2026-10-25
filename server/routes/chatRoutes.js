@@ -5,34 +5,32 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const r = express.Router();
 
-// Helper function to try multiple models automatically if one fails
+// 🚀 2026 Mandated Production Standard Active Flash Models
 async function generateWithFallback(aiInstance, promptOrContent) {
-  // Google ke saare available model names ki list
   const modelsToTry = [
-    "gemini-2.5-flash",
-    "gemini-3.8-flash",
-    "gemini-1.5-flash",
-    "gemini-pro"
+    "gemini-3.8-flash",  // Flagship Active Flash Engine
+    "gemini-3.7-flash",  // High Performance Everyday Driver
+    "gemini-3.6-flash",  // Multi-step complex fallback
+    "gemini-2.5-flash"   // Legacy system backup
   ];
 
   let lastError = null;
 
   for (const modelName of modelsToTry) {
     try {
-      console.log(`Trying Gemini model: ${modelName}`);
+      console.log(`Executing request via active system model: ${modelName}`);
       const model = aiInstance.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(promptOrContent);
       if (result && result.response) {
         return result.response.text();
       }
     } catch (err) {
-      console.error(`Failed with ${modelName}:`, err.message);
+      console.error(`Endpoint error on ${modelName}:`, err.message);
       lastError = err;
-      // Agar model not found (404) ya outdated ka error hai, toh loop agle model par jayega
-      continue;
+      continue; // Jump to next stable tier model
     }
   }
-  throw new Error(`All Gemini models exhausted. Last error: ${lastError?.message}`);
+  throw new Error(`All available endpoints rejected. Last error: ${lastError?.message}`);
 }
 
 r.post("/", authMiddleware, async (req, res) => {
@@ -48,7 +46,6 @@ r.post("/", authMiddleware, async (req, res) => {
     
     c.messages.push({ role: "user", content: txt });
 
-    // Initialize Google AI Inside route safely
     if (!process.env.GEMINI_API_KEY) {
       reply = "Hey! Backend aur frontend connected hain, lekin Render Environment Settings par 'GEMINI_API_KEY' absent hai.";
     } else {
@@ -62,7 +59,6 @@ r.post("/", authMiddleware, async (req, res) => {
             { inlineData: { data: cleanBase64, mimeType: fType } }
           ];
           
-          // Call fallback handler for images/videos
           reply = await generateWithFallback(ai, contentPayload);
         } catch (geminiErr) {
           reply = `[Gemini Media Error]: ${geminiErr.message}`;
@@ -72,7 +68,6 @@ r.post("/", authMiddleware, async (req, res) => {
           const hist = c.messages.slice(0, -1).map(m => `${m.role === "user" ? "User" : "Model"}: ${m.content}`).join("\n");
           const prompt = `${hist}\nUser: ${txt}\nModel:`;
           
-          // Call fallback handler for standard text chat
           reply = await generateWithFallback(ai, prompt);
         } catch (geminiErr) {
           reply = `[Gemini Text Error]: ${geminiErr.message}`;
@@ -86,8 +81,7 @@ r.post("/", authMiddleware, async (req, res) => {
     
     res.json({ success: true, conversationId: c._id, reply: cleanReply });
   } catch (e) { 
-    // Fallback response to avoid blocking frontend layout with standard CORS locks
-    res.status(200).json({ success: true, reply: `AI Assistant currently setting up channels: ${e.message}` }); 
+    res.status(200).json({ success: true, reply: `AI Channels under restoration parameters: ${e.message}` }); 
   }
 });
 
