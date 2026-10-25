@@ -5,18 +5,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const r = express.Router();
 
-// 🔑 APNI GEMINI KEY YAHAN DIRECT PASTE KAREIN
-// (Jaise: "AIzaSy...") Dhyan rakhein ki quotes "" ke andar ho.
-const MY_SECRET_KEY= "YAHAN_APNI_GEMINI_KEY_PASTE_KAREIN";
-
+// 🚀 FIXED MODEL: gemini-1.5-flash ki jagah hum up-to-date stable model name use kar rahe hain
+const modelName = "gemini-2.5-flash"; 
 
 let ai = null;
 try {
-  // Agar Render env mein key hai toh use karein, nahi toh hamari direct key use karein
-  const finalKey = process.env.GEMINI_API_KEY || MY_SECRET_KEY;
-  
-  if (finalKey && !finalKey.includes("YAHAN_APNI")) {
-    ai = new GoogleGenerativeAI(finalKey).getGenerativeModel({ model: "gemini-1.5-flash" });
+  if (process.env.GEMINI_API_KEY) {
+    ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY).getGenerativeModel({ model: modelName });
   }
 } catch (err) {
   console.error("Gemini Initialization Error:", err.message);
@@ -35,9 +30,8 @@ r.post("/", authMiddleware, async (req, res) => {
     
     c.messages.push({ role: "user", content: txt });
 
-    // Agar dono jagah key nahi milti tabhi yeh backup response chalega
-    if (!ai) {
-      reply = "Hey! Backend aur frontend connect hain, par lagta hai code mein abhi bhi API Key sahi se nahi pahuche. Kripya chatRoutes.js mein line number 9 par apni key check karein.";
+    if (!ai || !process.env.GEMINI_API_KEY) {
+      reply = "Hey! Backend aur frontend connect ho gaye hain, lekin Render par 'GEMINI_API_KEY' missing hai.";
     } else if (fData && fType) {
       try {
         const cleanBase64 = fData.replace(/^data:.*?;base64,/, "");
@@ -47,6 +41,7 @@ r.post("/", authMiddleware, async (req, res) => {
         ]);
         reply = result.response.text();
       } catch (geminiErr) {
+        console.error("Gemini Media Error:", geminiErr.message);
         reply = `[Gemini API Error]: ${geminiErr.message}.`;
       }
     } else {
@@ -57,6 +52,7 @@ r.post("/", authMiddleware, async (req, res) => {
         const result = await ai.generateContent(prompt);
         reply = result.response.text();
       } catch (geminiErr) {
+        console.error("Gemini Text Error:", geminiErr.message);
         reply = `[Gemini API Error]: ${geminiErr.message}.`;
       }
     }
@@ -67,6 +63,7 @@ r.post("/", authMiddleware, async (req, res) => {
     
     res.json({ success: true, conversationId: c._id, reply: cleanReply });
   } catch (e) { 
+    console.error("Server Route Error:", e.message);
     res.status(500).json({ success: false, error: e.message }); 
   }
 });
@@ -86,4 +83,3 @@ r.get("/:id", authMiddleware, async (req, res) => {
 });
 
 export default r;
-
