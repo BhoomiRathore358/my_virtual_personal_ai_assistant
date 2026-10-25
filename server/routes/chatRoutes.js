@@ -5,33 +5,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const r = express.Router();
 
-// 🚀 2026 Mandated Production Standard Active Flash Models
-async function generateWithFallback(aiInstance, promptOrContent) {
-  const modelsToTry = [
-    "gemini-3.8-flash",  // Flagship Active Flash Engine
-    "gemini-3.7-flash",  // High Performance Everyday Driver
-    "gemini-3.6-flash",  // Multi-step complex fallback
-    "gemini-2.5-flash"   // Legacy system backup
-  ];
-
-  let lastError = null;
-
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`Executing request via active system model: ${modelName}`);
-      const model = aiInstance.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(promptOrContent);
-      if (result && result.response) {
-        return result.response.text();
-      }
-    } catch (err) {
-      console.error(`Endpoint error on ${modelName}:`, err.message);
-      lastError = err;
-      continue; // Jump to next stable tier model
-    }
-  }
-  throw new Error(`All available endpoints rejected. Last error: ${lastError?.message}`);
-}
+// 🚀 2026 Mandated Standard Active Model Only
+const ACTIVE_MODEL = "gemini-3.8-flash"; 
 
 r.post("/", authMiddleware, async (req, res) => {
   try {
@@ -49,17 +24,18 @@ r.post("/", authMiddleware, async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
       reply = "Hey! Backend aur frontend connected hain, lekin Render Environment Settings par 'GEMINI_API_KEY' absent hai.";
     } else {
+      // Direct client initialization with latest active specifications
       const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = ai.getGenerativeModel({ model: ACTIVE_MODEL });
 
       if (fData && fType) {
         try {
           const cleanBase64 = fData.replace(/^data:.*?;base64,/, "");
-          const contentPayload = [
+          const result = await model.generateContent([
             txt, 
             { inlineData: { data: cleanBase64, mimeType: fType } }
-          ];
-          
-          reply = await generateWithFallback(ai, contentPayload);
+          ]);
+          reply = result.response.text();
         } catch (geminiErr) {
           reply = `[Gemini Media Error]: ${geminiErr.message}`;
         }
@@ -68,7 +44,8 @@ r.post("/", authMiddleware, async (req, res) => {
           const hist = c.messages.slice(0, -1).map(m => `${m.role === "user" ? "User" : "Model"}: ${m.content}`).join("\n");
           const prompt = `${hist}\nUser: ${txt}\nModel:`;
           
-          reply = await generateWithFallback(ai, prompt);
+          const result = await model.generateContent(prompt);
+          reply = result.response.text();
         } catch (geminiErr) {
           reply = `[Gemini Text Error]: ${geminiErr.message}`;
         }
@@ -81,7 +58,7 @@ r.post("/", authMiddleware, async (req, res) => {
     
     res.json({ success: true, conversationId: c._id, reply: cleanReply });
   } catch (e) { 
-    res.status(200).json({ success: true, reply: `AI Channels under restoration parameters: ${e.message}` }); 
+    res.status(200).json({ success: true, reply: `AI Channels tuning parameters: ${e.message}` }); 
   }
 });
 
