@@ -7,14 +7,14 @@ import chatRoutes from "./routes/chatRoutes.js";
 
 const app = express();
 
-// Secure CORS configuration
+// CORS explicit configurations taaki Vercel kabhi block na ho
 app.use(cors({ 
-  origin: "*", // Vercel connection block na ho isliye, credentials ke sath '*' safe hai agar allowedHeaders explicit ho.
+  origin: "https://my-virtual-personal-ai-assistant.vercel.app", 
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 }));
 
-// Safe storage limit for photos and videos
 app.use(express.json({ limit: "50mb" })); 
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
