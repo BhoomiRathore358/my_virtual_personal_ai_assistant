@@ -5,16 +5,34 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const r = express.Router();
 
-// 2026 Production Standard Global Stable Model
-const modelName = "gemini-2.5-flash"; 
+// Helper function to try multiple models automatically if one fails
+async function generateWithFallback(aiInstance, promptOrContent) {
+  // Google ke saare available model names ki list
+  const modelsToTry = [
+    "gemini-2.5-flash",
+    "gemini-3.8-flash",
+    "gemini-1.5-flash",
+    "gemini-pro"
+  ];
 
-let ai = null;
-try {
-  if (process.env.GEMINI_API_KEY) {
-    ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY).getGenerativeModel({ model: modelName });
+  let lastError = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`Trying Gemini model: ${modelName}`);
+      const model = aiInstance.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(promptOrContent);
+      if (result && result.response) {
+        return result.response.text();
+      }
+    } catch (err) {
+      console.error(`Failed with ${modelName}:`, err.message);
+      lastError = err;
+      // Agar model not found (404) ya outdated ka error hai, toh loop agle model par jayega
+      continue;
+    }
   }
-} catch (err) {
-  console.error("Gemini Initialization Error:", err.message);
+  throw new Error(`All Gemini models exhausted. Last error: ${lastError?.message}`);
 }
 
 r.post("/", authMiddleware, async (req, res) => {
@@ -30,39 +48,46 @@ r.post("/", authMiddleware, async (req, res) => {
     
     c.messages.push({ role: "user", content: txt });
 
-    if (!ai || !process.env.GEMINI_API_KEY) {
-      reply = "Hey! Aapka backend aur frontend connected hain, lekin Render par 'GEMINI_API_KEY' absent hai. Kripya check karein.";
-    } else if (fData && fType) {
-      try {
-        const cleanBase64 = fData.replace(/^data:.*?;base64,/, "");
-        const result = await ai.generateContent([
-          txt, 
-          { inlineData: { data: cleanBase64, mimeType: fType } }
-        ]);
-        reply = result.response.text();
-      } catch (geminiErr) {
-        reply = `[Gemini API Error]: ${geminiErr.message}`;
-      }
+    // Initialize Google AI Inside route safely
+    if (!process.env.GEMINI_API_KEY) {
+      reply = "Hey! Backend aur frontend connected hain, lekin Render Environment Settings par 'GEMINI_API_KEY' absent hai.";
     } else {
-      try {
-        const hist = c.messages.slice(0, -1).map(m => `${m.role === "user" ? "User" : "Model"}: ${m.content}`).join("\n");
-        const prompt = `${hist}\nUser: ${txt}\nModel:`;
-        
-        const result = await ai.generateContent(prompt);
-        reply = result.response.text();
-      } catch (geminiErr) {
-        reply = `[Gemini API Error]: ${geminiErr.message}`;
+      const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+      if (fData && fType) {
+        try {
+          const cleanBase64 = fData.replace(/^data:.*?;base64,/, "");
+          const contentPayload = [
+            txt, 
+            { inlineData: { data: cleanBase64, mimeType: fType } }
+          ];
+          
+          // Call fallback handler for images/videos
+          reply = await generateWithFallback(ai, contentPayload);
+        } catch (geminiErr) {
+          reply = `[Gemini Media Error]: ${geminiErr.message}`;
+        }
+      } else {
+        try {
+          const hist = c.messages.slice(0, -1).map(m => `${m.role === "user" ? "User" : "Model"}: ${m.content}`).join("\n");
+          const prompt = `${hist}\nUser: ${txt}\nModel:`;
+          
+          // Call fallback handler for standard text chat
+          reply = await generateWithFallback(ai, prompt);
+        } catch (geminiErr) {
+          reply = `[Gemini Text Error]: ${geminiErr.message}`;
+        }
       }
     }
 
-    const cleanReply = reply ? reply.trim() : "I couldn't process that response.";
+    const cleanReply = reply ? reply.trim() : "I couldn't process that request.";
     c.messages.push({ role: "assistant", content: cleanReply });
     await c.save();
     
     res.json({ success: true, conversationId: c._id, reply: cleanReply });
   } catch (e) { 
-    // Is catch block se response hamesha valid JSON format mein bahar jayega taaki CORS error na aaye
-    res.status(200).json({ success: true, reply: `Server internally handled catch: ${e.message}` }); 
+    // Fallback response to avoid blocking frontend layout with standard CORS locks
+    res.status(200).json({ success: true, reply: `AI Assistant currently setting up channels: ${e.message}` }); 
   }
 });
 
